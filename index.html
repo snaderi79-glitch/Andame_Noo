@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#7c3aed"><title>پیگیر وزن</title>
+<style>
+:root{--p:#7c3aed;--g:#10b981;--o:#f59e0b;--r:#ef4444;--b:#3b82f6;--pk:#ec4899;--bg:#f5f3ff}
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Vazirmatn,sans-serif;background:var(--bg);color:#1f2937;padding-bottom:78px}
+header{background:linear-gradient(135deg,#7c3aed,#ec4899,#f59e0b);color:#fff;padding:18px;border-radius:0 0 28px 28px}
+header h1{margin:0;font-size:20px}header small{opacity:.9}
+main{padding:14px;max-width:760px;margin:auto}
+.card{background:#fff;border-radius:18px;padding:14px;margin-bottom:12px;box-shadow:0 3px 12px #7c3aed22}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{border-radius:16px;padding:12px;color:#fff;text-align:center}.stat b{display:block;font-size:22px;margin-top:4px}
+.c1{background:linear-gradient(135deg,#10b981,#059669)}.c2{background:linear-gradient(135deg,#3b82f6,#6366f1)}
+.c3{background:linear-gradient(135deg,#f59e0b,#ef4444)}.c4{background:linear-gradient(135deg,#ec4899,#8b5cf6)}
+.c5{background:linear-gradient(135deg,#06b6d4,#3b82f6)}.c6{background:linear-gradient(135deg,#84cc16,#10b981)}
+input,select,button{font:inherit;padding:10px;border-radius:12px;border:2px solid #ddd6fe;width:100%;margin:4px 0;background:#fff}
+button{background:var(--p);color:#fff;border:0;cursor:pointer;font-weight:bold}button.s{background:var(--g)}button.d{background:var(--r);width:auto;padding:4px 10px}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;box-shadow:0 -3px 14px #0002;border-radius:20px 20px 0 0;overflow-x:auto}
+nav a{flex:1;min-width:62px;text-align:center;padding:9px 4px;font-size:11px;color:#6b7280;cursor:pointer}
+nav a span{display:block;font-size:20px}nav a.on{color:#fff;background:var(--c);border-radius:16px;margin:4px}
+.bar{height:16px;background:#e5e7eb;border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,#10b981,#84cc16)}
+.row{display:flex;gap:6px;align-items:center}.row>*{flex:1}.row .fix{flex:none}
+.tag{display:inline-block;padding:2px 10px;border-radius:12px;color:#fff;font-size:12px}
+.seg{display:flex;gap:6px}.seg button{background:#ede9fe;color:var(--p)}.seg button.on{background:var(--p);color:#fff}
+.msg{border-right:6px solid var(--c,#7c3aed);padding:8px 12px;background:#faf5ff;border-radius:10px;margin:6px 0}
+h3{margin:0 0 8px}li{margin:4px 0}.up{color:var(--r)}.dn{color:var(--g)}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:6px;border-bottom:1px solid #eee;text-align:center}
+</style></head><body>
+<header><h1>⚖️ پیگیر وزن و سلامت</h1><small id="today"></small></header>
+<main id="app"></main><nav id="nav"></nav>
+<script>
+const $=s=>document.querySelector(s);
+const FA=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const R1=n=>FA((Math.round(n*10)/10).toString().replace('.','٫'));
+const MONTHS=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+/* ---- تاریخ شمسی ---- */
+function g2j(gy,gm,gd){const t=[0,31,59,90,120,151,181,212,243,273,304,334];const g2=gm>2?gy+1:gy;
+let d=355666+365*gy+Math.floor((g2+3)/4)-Math.floor((g2+99)/100)+Math.floor((g2+399)/400)+gd+t[gm-1];
+let jy=-1595+33*Math.floor(d/12053);d%=12053;jy+=4*Math.floor(d/1461);d%=1461;
+if(d>365){jy+=Math.floor((d-1)/365);d=(d-1)%365}
+const jm=d<186?1+Math.floor(d/31):7+Math.floor((d-186)/30);const jd=1+(d<186?d%31:(d-186)%30);return[jy,jm,jd]}
+function j2g(jy,jm,jd){jy+=1595;let d=-355668+365*jy+Math.floor(jy/33)*8+Math.floor(((jy%33)+3)/4)+jd+(jm<7?(jm-1)*31:(jm-7)*30+186);
+let gy=400*Math.floor(d/146097);d%=146097;if(d>36524){gy+=100*Math.floor(--d/36524);d%=36524;if(d>=365)d++}
+gy+=4*Math.floor(d/1461);d%=1461;if(d>365){gy+=Math.floor((d-1)/365);d=(d-1)%365}
+let gd=d+1;const s=[0,31,(gy%4==0&&gy%100!=0)||gy%400==0?29:28,31,30,31,30,31,31,30,31,30,31];let gm;
+for(gm=1;gm<13&&gd>s[gm];gm++)gd-=s[gm];return[gy,gm,gd]}
+const iso=(y,m,d)=>`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+const todayISO=()=>{const t=new Date();return iso(t.getFullYear(),t.getMonth()+1,t.getDate())};
+const dn=s=>{const[a,b,c]=s.split('-').map(Number);return Math.round(Date.UTC(a,b-1,c)/864e5)};
+const fromDn=n=>{const t=new Date(n*864e5);return iso(t.getUTCFullYear(),t.getUTCMonth()+1,t.getUTCDate())};
+const J=s=>{const[a,b,c]=s.split('-').map(Number);return g2j(a,b,c)};
+const jf=s=>{const[y,m,d]=J(s);return `${FA(d)} ${MONTHS[m-1]} ${FA(y)}`};
+const jshort=s=>{const[y,m,d]=J(s);return `${FA(m)}/${FA(d)}`};
+function datePicker(id,val){const[jy,jm,jd]=J(val);const cy=J(todayISO())[0];
+let h=`<div class="row" id="${id}"><select>`;for(let i=1;i<=31;i++)h+=`<option ${i==jd?'selected':''} value=${i}>${FA(i)}</option>`;
+h+=`</select><select>`;MONTHS.forEach((n,i)=>h+=`<option ${i+1==jm?'selected':''} value=${i+1}>${n}</option>`);
+h+=`</select><select>`;for(let y=cy-5;y<=cy+1;y++)h+=`<option ${y==jy?'selected':''} value=${y}>${FA(y)}</option>`;return h+`</select></div>`}
+const getDate=id=>{const s=document.querySelectorAll(`#${id} select`);const[g1,g2,g3]=j2g(+s[2].value,+s[1].value,+s[0].value);return iso(g1,g2,g3)};
+/* ---- داده ---- */
+let S=JSON.parse(localStorage.getItem('wt')||'null')||{profile:null,w:{},meals:{},act:{}};
+const save=()=>localStorage.setItem('wt',JSON.stringify(S));
+const FOODS=[["نان لواش (۱ تکه)",90],["نان سنگک (۱ کف دست)",150],["نان بربری (۱ کف دست)",160],["نان تست (۱ برش)",80],["برنج پخته (۱ مشت بزرگ)",200],["ماکارونی (۱ پیمانه)",220],["سیب‌زمینی (۱ متوسط)",130],["تخم‌مرغ آب‌پز (۱ عدد)",75],["تخم‌مرغ نیمرو (۱ عدد)",110],["پنیر (۱ قوطی کبریت)",80],["کره (۱ قاشق چای‌خوری)",36],["مربا/عسل (۱ قاشق)",50],["شیر (۱ لیوان)",120],["ماست کم‌چرب (۱ کاسه)",100],["دوغ (۱ لیوان)",40],["چای با قند (۱ لیوان)",25],["قهوه ساده (۱)",5],["مرغ کبابی/پخته (۱۰۰ گرم)",165],["جوجه‌کباب (۱ سیخ)",250],["کباب کوبیده (۱ سیخ)",300],["گوشت قرمز پخته (۱۰۰ گرم)",250],["ماهی (۱۰۰ گرم)",150],["خورشت قورمه‌سبزی (۱ ملاقه)",190],["خورشت قیمه (۱ ملاقه)",220],["عدسی/سوپ (۱ کاسه)",170],["آبگوشت (۱ پرس)",450],["املت (۱ پرس)",300],["حلیم (۱ کاسه)",300],["کته/چلو با خورش (۱ پرس)",600],["پیتزا (۱ برش)",285],["ساندویچ (۱ عدد)",450],["سالاد (۱ بشقاب)",60],["سیب (۱ متوسط)",80],["موز (۱ عدد)",105],["پرتقال (۱ عدد)",65],["خیار (۱ عدد)",15],["هندوانه (۱ برش)",90],["گردو/بادام (۱ مشت)",170],["پسته (۱ مشت)",160],["شکلات (۱ تکه)",55],["بیسکویت (۱ عدد)",50],["نوشابه (۱ قوطی)",140],["چیپس (۱ بسته کوچک)",150],["خرما (۱ عدد)",23],["کیک (۱ برش)",300]];
+const MEALS=[["🌅","صبحانه"],["🍎","میان‌وعده صبح"],["🍛","ناهار"],["🥜","میان‌وعده عصر"],["🍲","شام"]];
+/* ---- محاسبات ---- */
+const P=()=>S.profile;
+const dates=()=>Object.keys(S.w).sort();
+const curW=()=>{const d=dates();return d.length?S.w[d.at(-1)]:P().w0};
+const bmi=(w)=>w/Math.pow(P().h/100,2);
+function targetW(){const p=P();if(p.target)return p.target;const bm=p.age>=50?23.5:22;return Math.round(bm*Math.pow(p.h/100,2)*10)/10}
+function bmr(){const p=P();return 10*curW()+6.25*p.h-5*p.age+(p.sex=='m'?5:-161)}
+const AF={1.2:'کم‌تحرک',1.375:'کمی فعال',1.55:'نسبتاً فعال',1.725:'خیلی فعال'};
+const tdee=()=>bmr()*P().af;
+const goalCal=()=>Math.max(P().sex=='m'?1500:1200,Math.round(tdee()-500));
+const mealCal=d=>Object.values(S.meals[d]||{}).flat().reduce((a,f)=>a+f.k*f.n,0);
+const burn=d=>{const a=S.act[d];if(!a)return 0;return Math.round((a.steps||0)*0.04+(a.min||0)*6)};
+function trend(){const d=dates();if(d.length<3)return null;const last=d.slice(-14);const x=last.map(dn),y=last.map(k=>S.w[k]);
+const n=x.length,mx=x.reduce((a,b)=>a+b)/n,my=y.reduce((a,b)=>a+b)/n;
+let nu=0,de=0;x.forEach((v,i)=>{nu+=(v-mx)*(y[i]-my);de+=(v-mx)**2});const sl=de?nu/de:0;return{perWeek:sl*7,days:n}}
+function interpret(){const t=trend();if(!t)return[['#6b7280','حداقل ۳ روز وزن ثبت کنید تا روند تحلیل شود.']];
+const pw=t.perWeek,w=curW(),pct=-pw/w*100;const out=[];
+if(pw>0.1)out.push(['#ef4444',`وزن شما در حال افزایش است (حدود ${R1(pw)} کیلو در هفته). غذا و تحرک را مرور کنید.`]);
+else if(pw>-0.1)out.push(['#f59e0b','وزن ثابت مانده (فلات). نوسان آب بدن طبیعی است؛ چند روز دیگر صبر کنید یا ۲۰ دقیقه پیاده‌روی اضافه کنید.']);
+else if(pct<=1)out.push(['#10b981',`روند عالی و پایدار: حدود ${R1(-pw)} کیلو کاهش در هفته (محدوده ایمن ۰٫۲۵ تا ۱ درصد وزن بدن).`]);
+else out.push(['#ef4444',`کاهش خیلی سریع است (${R1(-pw)} کیلو در هفته). خطر افت عضله؛ کالری را کمی بیشتر کنید.`]);
+const rem=curW()-targetW();if(pw<-0.1&&rem>0)out.push(['#3b82f6',`با این روند حدود ${FA(Math.ceil(rem/-pw))} هفته تا رسیدن به هدف باقی است.`]);
+const d=dates();if(d.length>=2){const df=S.w[d.at(-1)]-S.w[d.at(-2)];out.push(['#8b5cf6',`تغییر نسبت به ثبت قبلی: ${df>0?'+':''}${R1(df)} کیلو`])}
+return out}
+/* ---- نمودار ---- */
+function chart(pts,color,unit){if(pts.length<2)return'<p style="text-align:center;color:#888">داده کافی نیست (حداقل ۲ نقطه)</p>';
+const W=340,H=190,pd=30,v=pts.map(p=>p[1]);let mn=Math.min(...v,targetW()),mx=Math.max(...v);if(mx==mn){mx+=1;mn-=1}
+const X=i=>pd+i*(W-pd-10)/(pts.length-1),Y=y=>10+(mx-y)*(H-40)/(mx-mn);
+const line=pts.map((p,i)=>`${i?'L':'M'}${X(i)},${Y(p[1])}`).join('');
+let s=`<svg viewBox="0 0 ${W} ${H}" style="width:100%"><defs><linearGradient id="gr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".4"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>`;
+for(let i=0;i<4;i++){const y=mn+(mx-mn)*i/3;s+=`<line x1="${pd}" x2="${W-10}" y1="${Y(y)}" y2="${Y(y)}" stroke="#eee"/><text x="2" y="${Y(y)+4}" font-size="9" fill="#888">${R1(y)}</text>`}
+const ty=Y(targetW());s+=`<line x1="${pd}" x2="${W-10}" y1="${ty}" y2="${ty}" stroke="#10b981" stroke-dasharray="5"/><text x="${W-12}" y="${ty-3}" font-size="9" fill="#10b981" text-anchor="end">هدف</text>`;
+s+=`<path d="${line}L${X(pts.length-1)},${H-30}L${X(0)},${H-30}Z" fill="url(#gr)"/><path d="${line}" fill="none" stroke="${color}" stroke-width="3"/>`;
+pts.forEach((p,i)=>{s+=`<circle cx="${X(i)}" cy="${Y(p[1])}" r="4" fill="${color}"/>`;if(pts.length<=12||i%Math.ceil(pts.length/8)==0)s+=`<text x="${X(i)}" y="${H-14}" font-size="9" fill="#555" text-anchor="middle">${p[0]}</text>`;if(pts.length<=8)s+=`<text x="${X(i)}" y="${Y(p[1])-8}" font-size="9" fill="${color}" text-anchor="middle">${R1(p[1])}</text>`});
+return s+'</svg>'}
+function bars(items,color){const mx=Math.max(...items.map(i=>i[1]),1);return items.map(i=>`<div class="row" style="margin:4px 0"><span class="fix" style="width:70px;font-size:12px">${i[0]}</span><div class="bar"><i style="width:${i[1]/mx*100}%;background:${i[2]||color}"></i></div><span class="fix" style="width:55px;font-size:12px">${FA(Math.round(i[1]))}</span></div>`).join('')}
+/* ---- صفحات ---- */
+let tab='home',cm='w',selDate=todayISO();
+const TABS=[['home','🏠','خانه','#7c3aed'],['weight','⚖️','وزن','#3b82f6'],['chart','📈','نمودار','#10b981'],['food','🍽️','غذا','#f59e0b'],['act','🏃','تحرک','#ec4899'],['cmp','📊','مقایسه','#06b6d4'],['set','⚙️','تنظیمات','#6b7280']];
+function render(){
+if(!P()){onboard();return}
+$('#today').textContent='امروز: '+jf(todayISO());
+$('#nav').innerHTML=TABS.map(t=>`<a class="${tab==t[0]?'on':''}" style="--c:${t[3]}" onclick="tab='${t[0]}';render()"><span>${t[1]}</span>${t[2]}</a>`).join('');
+$('#app').innerHTML=({home,weight,chartTab,food,act,cmp,set})[tab]();window.scrollTo(0,0)}
+function onboard(){$('#nav').innerHTML='';$('#today').textContent='خوش آمدید';
+$('#app').innerHTML=`<div class="card"><h3>🎯 شروع</h3>
+نام<input id="nm"><div class="row"><div>جنسیت<select id="sx"><option value="f">زن</option><option value="m">مرد</option></select></div><div>سن<input id="ag" type="number" value="30"></div></div>
+<div class="row"><div>قد (سانتی‌متر)<input id="ht" type="number" value="170"></div><div>وزن اولیه (کیلو)<input id="w0" type="number" step="0.1" value="80"></div></div>
+تاریخ شروع${datePicker('sd',todayISO())}
+سطح فعالیت عمومی<select id="af">${Object.entries(AF).map(([k,v])=>`<option value=${k}>${v}</option>`).join('')}</select>
+وزن هدف (اختیاری؛ خالی = محاسبه خودکار از قد و سن)<input id="tg" type="number" step="0.1">
+<button onclick="start()">شروع برنامه 🚀</button></div>`}
+function start(){const w0=+$('#w0').value,h=+$('#ht').value,a=+$('#ag').value;if(!w0||!h||!a)return alert('مقادیر را کامل وارد کنید');
+const sd=getDate('sd');S.profile={name:$('#nm').value,sex:$('#sx').value,age:a,h,w0,start:sd,af:+$('#af').value,target:+$('#tg').value||0};S.w[sd]=w0;save();render()}
+function home(){const p=P(),w=curW(),t=targetW(),lost=p.w0-w,total=p.w0-t,rem=w-t;const pr=total>0?Math.max(0,Math.min(100,lost/total*100)):100;
+const day=dn(todayISO())-dn(p.start)+1,b=bmi(w);const bc=b<18.5?['لاغر','#3b82f6']:b<25?['نرمال','#10b981']:b<30?['اضافه‌وزن','#f59e0b']:['چاقی','#ef4444'];
+const tc=mealCal(todayISO());
+return `<div class="card"><h3>سلام ${p.name||''} 👋</h3><small>شروع: ${jf(p.start)} — روز ${FA(day)}</small>
+<div class="grid" style="margin-top:10px"><div class="stat c1">تا الان کم کرده‌اید<b>${R1(Math.max(lost,0))} کیلو</b>${lost<0?'<small>(افزایش '+R1(-lost)+')</small>':''}</div>
+<div class="stat c3">تا هدف مانده<b>${R1(Math.max(rem,0))} کیلو</b></div>
+<div class="stat c2">وزن فعلی<b>${R1(w)}</b></div><div class="stat c4">وزن هدف<b>${R1(t)}</b></div></div>
+<p>پیشرفت: ${FA(Math.round(pr))}٪</p><div class="bar"><i style="width:${pr}%"></i></div></div>
+<div class="card"><h3>BMI شما: ${R1(b)} <span class="tag" style="background:${bc[1]}">${bc[0]}</span></h3>
+<small>وزن هدف بر اساس قد ${FA(p.h)} و سن ${FA(p.age)} (BMI ${p.age>=50?'۲۳٫۵':'۲۲'}) محاسبه شده${p.target?' / یا دستی':''}.</small></div>
+<div class="card"><h3>🔍 تفسیر روند</h3>${interpret().map(m=>`<div class="msg" style="--c:${m[0]}">${m[1]}</div>`).join('')}</div>
+<div class="card"><h3>🔥 کالری امروز</h3><div class="grid"><div class="stat c3">مصرف<b>${FA(Math.round(tc))}</b></div><div class="stat c5">سقف پیشنهادی<b>${FA(goalCal())}</b></div></div></div>`}
+function weight(){const d=dates().reverse().slice(0,30);
+return `<div class="card"><h3>⚖️ ثبت وزن روزانه</h3>${datePicker('wd',selDate)}<input id="wv" type="number" step="0.1" placeholder="وزن (کیلو)"><button class="s" onclick="addW()">ثبت وزن</button></div>
+<div class="card"><h3>تاریخچه</h3><table><tr><th>تاریخ</th><th>وزن</th><th>تغییر</th><th></th></tr>${d.map((k,i)=>{const pv=d[i+1];const df=pv?S.w[k]-S.w[pv]:0;return `<tr><td>${jf(k)}</td><td>${R1(S.w[k])}</td><td class="${df>0?'up':'dn'}">${pv?(df>0?'+':'')+R1(df):'-'}</td><td><button class="d" onclick="delW('${k}')">✕</button></td></tr>`}).join('')}</table></div>`}
+function addW(){const v=+$('#wv').value;if(!v)return;S.w[getDate('wd')]=v;save();render()}
+function delW(k){delete S.w[k];save();render()}
+function chartTab(){const d=dates();let pts=[],title;
+if(cm=='d'){title='۳۰ روز اخیر';pts=d.slice(-30).map(k=>[jshort(k),S.w[k]])}
+else if(cm=='w'){title='میانگین هفتگی (از شروع)';const s=dn(P().start),g={};d.forEach(k=>{const i=Math.floor((dn(k)-s)/7);(g[i]=g[i]||[]).push(S.w[k])});pts=Object.keys(g).map(i=>['هفته '+FA(+i+1),g[i].reduce((a,b)=>a+b)/g[i].length])}
+else{title='میانگین ماهانه (ماه شمسی)';const g={};d.forEach(k=>{const[y,m]=J(k);const key=y*100+m;(g[key]=g[key]||[]).push(S.w[k])});pts=Object.keys(g).sort().map(key=>[MONTHS[key%100-1],g[key].reduce((a,b)=>a+b)/g[key].length])}
+return `<div class="card"><div class="seg">${[['d','روزانه'],['w','هفتگی'],['m','ماهانه']].map(x=>`<button class="${cm==x[0]?'on':''}" onclick="cm='${x[0]}';render()">${x[1]}</button>`).join('')}</div>
+<h3 style="margin-top:12px">${title}</h3>${chart(pts,cm=='d'?'#7c3aed':cm=='w'?'#10b981':'#f59e0b')}</div>
+<div class="card"><h3>🔍 تفسیر</h3>${interpret().map(m=>`<div class="msg" style="--c:${m[0]}">${m[1]}</div>`).join('')}</div>`}
+function food(){const m=S.meals[selDate]||{};let tot=mealCal(selDate);
+return `<div class="card"><h3>🍽️ وعده‌های غذایی</h3>${datePicker('fd',selDate)}<button onclick="selDate=getDate('fd');render()">نمایش این روز</button>
+<div class="stat c3">${jf(selDate)} — مجموع<b>${FA(Math.round(tot))} کالری</b><small>سقف پیشنهادی ${FA(goalCal())}</small></div></div>`+
+MEALS.map((ml,i)=>{const it=m[i]||[];const sub=it.reduce((a,f)=>a+f.k*f.n,0);return `<div class="card"><h3>${ml[0]} ${ml[1]} <span class="tag" style="background:#f59e0b;float:left">${FA(Math.round(sub))} کالری</span></h3>
+<ul>${it.map((f,j)=>`<li>${f.name} × ${FA(f.n)} = ${FA(Math.round(f.k*f.n))} <button class="d" onclick="delF(${i},${j})">✕</button></li>`).join('')}</ul>
+<select id="f${i}" onchange="fk(${i})"><option value="">انتخاب غذا...</option>${FOODS.map((f,x)=>`<option value=${x}>${f[0]} — ${FA(f[1])} کالری</option>`).join('')}<option value="c">✏️ غذای دلخواه</option></select>
+<div id="cu${i}" style="display:none"><input id="cn${i}" placeholder="نام غذا"><input id="ck${i}" type="number" placeholder="کالری هر واحد"></div>
+<div class="row"><input id="fn${i}" type="number" step="0.5" value="1" class="fix" style="max-width:90px"><button class="s" onclick="addF(${i})">افزودن</button></div></div>`}).join('')}
+function fk(i){$('#cu'+i).style.display=$('#f'+i).value=='c'?'block':'none'}
+function addF(i){const v=$('#f'+i).value,n=+$('#fn'+i).value||1;if(v==='')return;let f;
+if(v=='c'){const k=+$('#ck'+i).value;if(!k)return;f={name:$('#cn'+i).value||'غذا',k}}else f={name:FOODS[v][0],k:FOODS[v][1]};
+f.n=n;(S.meals[selDate]=S.meals[selDate]||{})[i]=(S.meals[selDate][i]||[]).concat(f);save();render()}
+function delF(i,j){S.meals[selDate][i].splice(j,1);save();render()}
+function act(){const a=S.act[selDate]||{};
+return `<div class="card"><h3>🏃 تحرک، خواب و آب</h3>${datePicker('ad',selDate)}<button onclick="selDate=getDate('ad');render()">نمایش این روز</button><b>${jf(selDate)}</b>
+<label>👣 تعداد قدم</label><input id="st" type="number" value="${a.steps||''}">
+<label>🏋️ دقیقه ورزش</label><input id="mn" type="number" value="${a.min||''}">
+<label>😴 ساعت خواب</label><input id="sl" type="number" step="0.5" value="${a.sleep||''}">
+<label>💧 لیوان آب</label><input id="wa" type="number" value="${a.water||''}">
+<button class="s" onclick="saveA()">ذخیره</button>
+<div class="grid" style="margin-top:8px"><div class="stat c6">کالری سوخته (تخمین)<b>${FA(burn(selDate))}</b></div><div class="stat c5">آب<b>${FA(a.water||0)} / ۸</b></div></div></div>`}
+function saveA(){S.act[selDate]={steps:+$('#st').value,min:+$('#mn').value,sleep:+$('#sl').value,water:+$('#wa').value};save();render()}
+function cmp(){const t=todayISO(),n=dn(t);const days=[...Array(7)].map((_,i)=>fromDn(n-i));
+const avg=f=>{const v=days.slice(1).map(f).filter(x=>x>0);return v.length?v.reduce((a,b)=>a+b)/v.length:0};
+const rows=[['🔥 کالری مصرفی',d=>mealCal(d),'#f59e0b','کالری'],['🏃 کالری سوخته',burn,'#10b981','کالری'],['👣 قدم',d=>(S.act[d]||{}).steps||0,'#3b82f6','قدم'],['😴 خواب',d=>(S.act[d]||{}).sleep||0,'#8b5cf6','ساعت'],['💧 آب',d=>(S.act[d]||{}).water||0,'#06b6d4','لیوان']];
+return `<div class="card"><h3>📊 امروز در مقایسه با روزهای قبل</h3><table><tr><th></th><th>امروز</th><th>دیروز</th><th>میانگین ۶ روز قبل</th></tr>
+${rows.map(r=>{const a=r[1](days[0]),b=r[1](days[1]),c=avg(r[1]);const ar=a>c?'▲':a<c?'▼':'=';return `<tr><td>${r[0]}</td><td><b>${R1(a)}</b> ${c?ar:''}</td><td>${R1(b)}</td><td>${R1(c)}</td></tr>`}).join('')}</table></div>`+
+rows.map(r=>`<div class="card"><h3>${r[0]} — ۷ روز اخیر</h3>${bars(days.map((d,i)=>[i?jshort(d):'امروز',r[1](d),i?r[2]+'99':r[2]]).reverse(),r[2])}</div>`).join('')+
+`<div class="card"><h3>تراز کالری امروز</h3>${(()=>{const net=mealCal(t)-tdee()-burn(t);return `<div class="msg" style="--c:${net<0?'#10b981':'#ef4444'}">مصرف − (متابولیسم + ورزش) = <b>${FA(Math.round(net))}</b> کالری ${net<0?'(کسری؛ مناسب کاهش وزن ✅)':'(مازاد)'}</div>`})()}</div>`}
+function set(){const p=P();return `<div class="card"><h3>⚙️ تنظیمات</h3>
+وزن هدف دستی (کیلو)<input id="tg" type="number" step="0.1" value="${p.target||''}" placeholder="${targetW()}">
+سن<input id="ag" type="number" value="${p.age}">قد<input id="ht" type="number" value="${p.h}">
+فعالیت<select id="af">${Object.entries(AF).map(([k,v])=>`<option value=${k} ${k==p.af?'selected':''}>${v}</option>`).join('')}</select>
+<button class="s" onclick="P().target=+$('#tg').value||0;P().age=+$('#ag').value;P().h=+$('#ht').value;P().af=+$('#af').value;save();tab='home';render()">ذخیره</button>
+<button onclick="exp()">⬇️ دانلود پشتیبان</button><button style="background:var(--r)" onclick="if(confirm('همه داده‌ها پاک شود؟')){localStorage.removeItem('wt');location.reload()}">🗑️ پاک کردن همه</button></div>
+<p style="text-align:center;color:#888;font-size:12px">اطلاعات فقط روی همین دستگاه ذخیره می‌شود. این برنامه جایگزین مشاوره پزشک نیست.</p>`}
+function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='weight-backup.json';a.click()}
+render();
+</script></body></html>
